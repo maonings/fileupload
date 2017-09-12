@@ -3,27 +3,9 @@
 <html>
 <head>
 	<title>Insert title here</title>
-	<script type="text/javascript" src="/static/js/img.upload.js"></script>
-	<style type="text/css">
-		.preview {
-			border: 1px solid #2D9ADA; min-height: 385px; width: 630px; margin-top: 15px;
-		}
-		input[type="file"] {
-            opacity: 0; width: 80px;
-		}
-		button {
-            height: 30px; background: #2D9ADA; color: white; border: 0px solid #2D9ADA; border-radius: 2px; cursor: pointer;
-		}
-		#chosen {
-            position: absolute; width: 80px;
-		}
-		#upload {
-            width: 65px; margin-left: 15px;
-		}
-		.msg {
-		  font-size: 12px; color: red;
-		}
-	</style>
+	<script type="text/javascript" src="/static/js/img.upload.js?v=0.0.1"></script>
+	<link href="/static/css/font-awesome.css" rel="stylesheet" type="text/css">
+	<link href="/static/css/style.css" rel="stylesheet" type="text/css">
 </head>
 <body>
     
@@ -34,7 +16,7 @@
 		
 		<button id="chosen">浏览</button>
 		
-		<input name="file" type="file" multiple="multiple" max="6" onchange="uploadHandler_0(this)"/>
+		<input name="file" type="file" multiple="multiple" max="8" onchange="uploadHandler_0(this)"/>
 		   
 		<button id="upload" onclick="uploadHandler_0()">上传</button>
 		
@@ -55,11 +37,11 @@
          */
 		this.uploadHandler_0 = function(file) {
 	        if (file) {
-	            iu.preview(file);
+	            iu.preview(file, 150, 120);
 	        } else {
 	            iu.upload("/upload.do");
 	        }
 	    }
-	})();
+	})(window);
 </script>
 </html>

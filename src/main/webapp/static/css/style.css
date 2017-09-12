@@ -1,0 +1,18 @@
+.preview {
+    border: 1px solid #2D9ADA; min-height: 320px; width: 620px; margin-top: 15px;
+}
+input[type="file"] {
+    opacity: 0; width: 80px;
+}
+button {
+    height: 30px; background: #2D9ADA; color: white; border: 0px solid #2D9ADA; border-radius: 2px; cursor: pointer;
+}
+#chosen {
+    position: absolute; width: 80px;
+}
+#upload {
+    width: 65px; margin-left: 15px;
+}
+.msg {
+  font-size: 12px; color: red;
+}

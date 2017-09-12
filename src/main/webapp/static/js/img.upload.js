@@ -7,7 +7,7 @@ function ImgUpload(){
 	 * file文本域中全部的file
 	 * Type -- FileList;
 	 * */	
-	var	_files;
+	var	_files = {length : 0};
 	
 	/**
 	 * 上传到服务器的合法file
@@ -34,16 +34,22 @@ function ImgUpload(){
 	var	_validateSize = function(file){
 		return (file.size - 1024 * 1024 * 5) > 0;
 	};
+	
+	/**
+	 * 预览容器对象
+	 * */
+	var _container;
+	
 
 	/**
 	 * 图片验证和预览
 	 * @param	File fileElement
+	 * @param 	Number height
+	 * @param 	Number width
 	 * */
-	this.preview = function(fileInput) {
-		/*
-		 * 获取预览容器对象
-		 * */
-		var container = function(){
+	this.preview = function(fileInput, height, width) {
+		
+		var files = fileInput.files, max = fileInput.max, getContainer = function(){
 			var pnode = fileInput;
 			while (pnode) {
 				var cls = pnode.getAttribute("class");
@@ -55,18 +61,18 @@ function ImgUpload(){
 				var cls = childs[i].getAttribute("class");
 				if (cls && cls.indexOf("preview") != -1) return childs[i];
 			}
-		}();
+		};
 		
-		container.innerHTML = "";
+		_container = getContainer();
+
+		//clear前一次预览图片
+		_container.innerHTML = "";
 		
-		//获取FileList对象
-		var files = fileInput.files, max = fileInput.max;
-		
-		/*给全局_files对象赋值*/
+		//给全局_files对象赋值
 		_files = files;
 		
 		for (var i = 0; i < files.length; i++) {
-			var file = files[i], imgs = container.childNodes;
+			var file = files[i], imgs = _container.childNodes;
 			//验证图片格式和size
 			if (!_validateType(file)) {
 				console.log("不支持的图片格式：" + file.name); continue;
@@ -79,21 +85,24 @@ function ImgUpload(){
 				alert("最多只能选择" + max + "张图片"); break;
 			}
 			
-			//把校验通过的file压入上传文件数组
+			//把校验通过的file压入上传文件数组 
 			_dataFiles.push(file);
 			
 			//创建img对象并添加到预览容器中
 			var	img = document.createElement("img"), src = window.URL.createObjectURL(file);
 				img.setAttribute("src", src);
-				img.setAttribute("style", "height: 180px; width: 200px; padding: 5px;");
-				img.setAttribute("alt", file.name);	
-			container.appendChild(img);
+				img.setAttribute("style", "width: 100%;");
+				img.setAttribute("alt", file.name);
+			var div = document.createElement("div");
+				div.setAttribute("style", "hieght: " + height + "px; width:  "+ height + "px; padding: 2px; border: 1px solid red; display: inline-block;");
+				div.appendChild(img);
+			_container.appendChild(div);
 		}
 	};
 	
 	/**
 	 * @param	url String;
-	 * @param	successBack Function(responseText);
+	 * @param	successBack Function(responseJSON);
 	 * @param	failBack Function(status, statusText);
 	 * */
 	this.upload = function(url, successBack, failBack) {
@@ -166,23 +175,44 @@ function ImgUpload(){
 				/*
 				 * 请求成功callback
 				 * */
-				success = successBack || function(resText) {
-//					alert("Upload success, response text: " + resText);
+				success = successBack || function(resJSON) {
+					console.log("Request success, response json: " + resJSON);
 				};
 				
 				/*
 				 * 请求失败callback
 				 * */
 				fail = failBack || function(code, text) {
-//					alert("Upload fail, status code: " + code + ", StatusText: " + text);
+					alert("Request fail, status code: " + code + ", StatusText: " + text);
 				};
 				
 				/*
 				 * HTTP状态码
 				 * */
 				if (status == 200) {
-					var json = JSON.parse(xhr.responseText);
-					//console.log(json[0].name);
+					var json = JSON.parse(xhr.responseText), uploadResult, imgs = _container.childNodes;
+					/*
+					 * 上传结果
+					 * */
+					uploadResult = function(fileName) {
+						for (var i = 0; i < json.length; i++) {
+							if (json[i].original == fileName) {
+								return json[i];
+							}
+						}
+					};
+					
+					//execute callBack before
+					for (var i = 0; i < imgs.length; i++) {
+						var img = imgs[i], fileName = img.getAttribute("alt"), result = uploadResult(fileName) || {flag : false, message: ""};
+						if (result.flag) { //上传成功
+							console.log(img);
+						} else { //上传失败
+							console.log(result.message);
+						}
+					}
+					
+					//execute callBack
 					success(json);
 				} else {
 					fail(xhr.status, xhr.statusText);

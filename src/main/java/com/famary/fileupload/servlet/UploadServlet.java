@@ -18,7 +18,7 @@ import com.famary.fileupload.util.JsonUtils;
 /**
  * Servlet implementation class UploadServlet
  */
-@MultipartConfig
+@MultipartConfig()
 @WebServlet(name = "upload", urlPatterns = { "/upload.do" })
 public class UploadServlet extends HttpServlet {
 	

@@ -26,18 +26,31 @@ public class PartHandler {
 	/*存储路径*/
 	private String path = "";
 	
+	private long maxFileSize;
+	
+	private PartHandler(long maxFileSize) {
+		this.maxFileSize = maxFileSize;
+	}
+	
 	/**
 	 * 返回PartHandler实例
 	 * */
 	public static PartHandler newInstance() {
-		return new PartHandler();
+		return newInstance(1024 * 1024 * 5);
+	}
+	
+	/**
+	 * 返回PartHandler实例
+	 * */
+	public static PartHandler newInstance(long maxFileSize) {
+		return new PartHandler(maxFileSize);
 	}
 	
 	/**
 	 * 上传多个文件到指定目录文件夹
 	 * @throws IOException 
 	 * */
-	public List<PartUploadResult> multipleUpload(String path, Collection<Part> parts) throws IOException {
+	public List<PartUploadResult> multipleUpload(String path, Collection<Part> parts) {
 		//检查路径是否存在
 		checkPath(path);
 		return multipleUpload(parts);
@@ -47,7 +60,10 @@ public class PartHandler {
 	 * 上传多个文件到@MultipartConfig标注的location目录文件夹
 	 * @throws IOException 
 	 * */
-	public List<PartUploadResult> multipleUpload(Collection<Part> parts) throws IOException {
+	public List<PartUploadResult> multipleUpload(Collection<Part> parts) {
+		if (parts.isEmpty()) {
+			throw new NullPointerException("No has any files can be upload.");
+		}
 		List<PartUploadResult> results = new ArrayList<>();
 		Iterator<Part> iterator = parts.iterator();
 		while (iterator.hasNext()) {
@@ -60,7 +76,7 @@ public class PartHandler {
 	 * 上传单个文件到指定目录文件夹
 	 * @throws IOException 
 	 * */
-	public PartUploadResult upload(String path, Part part) throws IOException {
+	public PartUploadResult upload(String path, Part part) {
 		//检查路径是否存在
 		checkPath(path);
 		return upload(part);
@@ -77,6 +93,17 @@ public class PartHandler {
 		String fileName = getFileName(suffix);			//新文件名
 		
 		PartUploadResult result = new PartUploadResult(original, fileName);
+		
+		//check file size
+		if (part.getSize() > maxFileSize) {
+			try {
+				throw new IOException("File is too big.");
+			} catch (IOException e) {
+				result.setName(null);
+				result.setMessage(e.getMessage());
+			}
+			return result;
+		}
 		
 		InputStream in = null;
 		OutputStream out = null;
@@ -98,7 +125,6 @@ public class PartHandler {
 			result.setFlag(true);
 		} catch (IOException e) {
 			result.setMessage(e.getMessage());
-			e.printStackTrace();
 		} finally {
 			try {
 				out.flush();
@@ -122,7 +148,7 @@ public class PartHandler {
 	 * 返回yyyyMMddHHmmss格式当前时间+3位随机数的文件名
 	 * */
 	private String getFileName(String  suffix) {
-		int fourRandom = (int) ((Math.random()*9+1) * 1000);
+		int fourRandom = (int) ((Math.random() * 9 + 1) * 1000);
 		return DateFormatUtils.strDateTime() + fourRandom + suffix;
 	}
 	
@@ -250,5 +276,5 @@ public class PartHandler {
 			return "PartUploadResult [original=" + original + ", name=" + name + ", flag=" + flag + ", message="
 					+ message + ", time=" + time + "]";
 		}
-	} 
+	}
 }
