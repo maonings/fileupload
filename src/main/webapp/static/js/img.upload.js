@@ -7,20 +7,20 @@ function ImgUpload(){
 	 * file文本域中全部的file
 	 * Type -- FileList;
 	 * */	
-	var	_files = {length : 0};
+	var	files = new Array();
 	
 	/**
-	 * 上传到服务器的合法file
-	 * Type -- FileArray;
+	 * 预览容器对象
 	 * */
-	var _dataFiles = new Array();
+	var container;
+	
 	
 	/**
 	 * 验证文件类型
 	 * @param	File file
 	 * @return	Boolean
 	 * */
-	var	_validateType = function(file) {
+	var	validateType = function(file) {
 		var name = file.name, suffix = name.substring(name.lastIndexOf(".")), 
 			regx = /^[.]{1}(jpg|png|jpeg)$/;
 		return regx.test(suffix);
@@ -31,15 +31,33 @@ function ImgUpload(){
 	 * @param	File file
 	 * @return	Boolean
 	 * */
-	var	_validateSize = function(file){
+	var	validateSize = function(file){
 		return (file.size - 1024 * 1024 * 5) > 0;
 	};
 	
 	/**
-	 * 预览容器对象
+	 * 创建DOM元素
 	 * */
-	var _container;
-	
+	var createElement = function(tagName, attributes, html, events) {
+		var e = document.createElement(tagName);
+		//设置参数
+		if (attributes) {
+			for (attr in attributes) {
+				e.setAttribute(attr, attributes[attr]);
+			}
+		}
+		//添加HTML内容
+		if (html) {
+			e.innerHTML = html;
+		}
+		//添加监听
+		if (events) {
+			for (event in events) {
+				e.addEventListener(event, events[event], false);
+			}
+		}
+		return e;
+	}
 
 	/**
 	 * 图片验证和预览
@@ -48,8 +66,13 @@ function ImgUpload(){
 	 * @param 	Number width
 	 * */
 	this.preview = function(fileInput, height, width) {
+
+		var tempFiles = fileInput.files;
 		
-		var files = fileInput.files, max = fileInput.max, getContainer = function(){
+		/*
+		 * 获取预览容器对象
+		 * */
+		(function(fileInput){
 			var pnode = fileInput;
 			while (pnode) {
 				var cls = pnode.getAttribute("class");
@@ -59,44 +82,58 @@ function ImgUpload(){
 			var childs = pnode.getElementsByTagName("div");
 			for (var i = 0; i < childs.length; i++) {
 				var cls = childs[i].getAttribute("class");
-				if (cls && cls.indexOf("preview") != -1) return childs[i];
+				if (cls && cls.indexOf("preview") != -1) {
+					container = childs[i];
+					return;
+				}
 			}
-		};
+		})(fileInput);
 		
-		_container = getContainer();
-
 		//clear前一次预览图片
-		_container.innerHTML = "";
-		
-		//给全局_files对象赋值
-		_files = files;
-		
-		for (var i = 0; i < files.length; i++) {
-			var file = files[i], imgs = _container.childNodes;
+		//container.innerHTML = "";
+		for (var i = 0; i < tempFiles.length; i++) {
+			
+			var file = tempFiles[i], imgs = container.childNodes, div, oper, img, result;
+			
 			//验证图片格式和size
-			if (!_validateType(file)) {
+			if (!validateType(file)) {
 				console.log("不支持的图片格式：" + file.name); continue;
 			}
-			if (_validateSize(file)) {
+			if (validateSize(file)) {
 				console.log("图片过大，无法上传。Size：" + file.size + "kb"); continue;
 			}
 			//如果设置了max值，则上传数量不能超过max
-			if (max && imgs.length >= max) {
-				alert("最多只能选择" + max + "张图片"); break;
+			if (fileInput.max && imgs.length >= fileInput.max) {
+				alert("最多只能选择" + fileInput.max + "张图片"); break;
 			}
 			
 			//把校验通过的file压入上传文件数组 
-			_dataFiles.push(file);
+			files.push(file);
 			
-			//创建img对象并添加到预览容器中
-			var	img = document.createElement("img"), src = window.URL.createObjectURL(file);
-				img.setAttribute("src", src);
-				img.setAttribute("style", "width: 100%;");
-				img.setAttribute("alt", file.name);
-			var div = document.createElement("div");
-				div.setAttribute("style", "hieght: " + height + "px; width:  "+ height + "px; padding: 2px; border: 1px solid red; display: inline-block;");
-				div.appendChild(img);
-			_container.appendChild(div);
+			div = createElement("div", {"style" : "height: " + height + "px; width: " + width + "px; padding: 5px; display: inline-block; position: relative;"});
+			container.appendChild(div);
+				
+			oper = createElement("span", {"class": "oper"}, "<i class='fa fa-trash' data-name='"+file.name+"'></i>", {
+				"click": function(obj) {
+					//找到需要移除的包含图片的div对象
+					var currentDiv = obj.target.parentNode.parentNode, newDatas = new Array();
+					for (var i = 0; i < files.length; i++) {
+						if (files[i].name != obj.target.getAttribute("data-name")) {
+							newDatas.push(files[i]);
+						}
+					}
+					//通过当前DIV的父节点来移除当前DIV对象
+					currentDiv.parentNode.removeChild(currentDiv);
+					
+					//更新dataFiles;
+					files = newDatas; newDatas = null;
+				}
+			});
+			div.appendChild(oper);
+			
+			img = createElement("img", {"src": window.URL.createObjectURL(file), "style" : "width: 100%; height: 100%;", "alt": file.name});
+			
+			div.appendChild(img);
 		}
 	};
 	
@@ -107,17 +144,13 @@ function ImgUpload(){
 	 * */
 	this.upload = function(url, successBack, failBack) {
 		
-		var isIegal, formData, abort;
-		
-		/*
-		 * 验证文件
-		 * */
-		isIegal = function(file) {
-			for (var i = 0; i < _dataFiles.length; i++) {
-				if (file.name == _dataFiles[i].name) return true; 
-			}
+		if (!files || files.length == 0) {
+			alert("请选择图片");
+			return;
 		}
-
+		
+		var formData, abort;
+		
 		/*
 		 * 组装数据
 		 * */
@@ -128,14 +161,14 @@ function ImgUpload(){
 			/*
 			 * 创建form对象
 			 * */
-			form = document.createElement("form").setAttribute("enctype", "multipart/form-data");
+			form = createElement("form", {"enctype": "multipart/form-data"});
 			/*
 			 * 创建formData对象
 			 * */
 			fd = new FormData(form);
 			
-			for (var i = 0; i < _files.length; i++) {
-				if (isIegal(_files[i])) fd.append("file", _files[i]);
+			for (var i = 0; i < files.length; i++) {
+				fd.append("file", files[i]);
 			}
 			return fd;
 		}
@@ -176,7 +209,7 @@ function ImgUpload(){
 				 * 请求成功callback
 				 * */
 				success = successBack || function(resJSON) {
-					console.log("Request success, response json: " + resJSON);
+					//console.log("Request success, response json: " + resJSON);
 				};
 				
 				/*
@@ -190,11 +223,29 @@ function ImgUpload(){
 				 * HTTP状态码
 				 * */
 				if (status == 200) {
-					var json = JSON.parse(xhr.responseText), uploadResult, imgs = _container.childNodes;
+					
+					var json = JSON.parse(xhr.responseText), imgs = new Array();
+					
 					/*
-					 * 上传结果
+					 * 获得容器中全部图片对象
 					 * */
-					uploadResult = function(fileName) {
+					(function() {
+						var imgDivs = container.childNodes;
+						for (var i = 0; i < imgDivs.length; i++) {
+							var imgDiv = imgDivs[i];
+							var childs = imgDiv.childNodes;
+							for (var j = 0; j < childs.length; j++) {
+								if (childs[j].nodeName == "IMG") {
+									imgs.push(childs[j]); break;
+								}
+							}
+						}
+					})();
+					
+					/*
+					 * 根据图片名称获取上传结果
+					 * */
+					var getResultByFileName = function(fileName) {
 						for (var i = 0; i < json.length; i++) {
 							if (json[i].original == fileName) {
 								return json[i];
@@ -202,14 +253,53 @@ function ImgUpload(){
 						}
 					};
 					
+					/*
+					 * 从files移除上传成功的file对象
+					 * */
+					var removeFile = function(fileName) {
+						var temp = new Array();
+						for (var i = 0; i < files.length; i++) {
+							if (files[i].name != fileName) {
+								temp.push(files[i]);
+							}
+						}
+						files = temp; temp = null;
+					};
+					
+					/*
+					 * 移除操作按钮
+					 * */
+					var removeOper = function(img) {
+						var parent = img.parentNode, nodes = parent.childNodes;
+						for (var i = 0; i < nodes.length; i++) {
+							if (nodes[i].getAttribute("class").indexOf("oper") != -1) {
+								parent.removeChild(nodes[i]);
+							}
+						}
+					};
+					
 					//execute callBack before
 					for (var i = 0; i < imgs.length; i++) {
-						var img = imgs[i], fileName = img.getAttribute("alt"), result = uploadResult(fileName) || {flag : false, message: ""};
-						if (result.flag) { //上传成功
-							console.log(img);
-						} else { //上传失败
-							console.log(result.message);
+						var img = imgs[i], fileName = img.getAttribute("alt"),
+							result = getResultByFileName(fileName), 
+							span = createElement("span", {"class": "result"})
+							style = "width: " + img.parentNode.style.width + "; background: ";
+						//上传成功
+						if (result && result.flag) {
+							style += "#2D9ADA;";
+							span.innerHTML = "upload success";
+							removeFile(result.original);
+							removeOper(img);
+						} 
+						
+						//上传失败
+						if (result && !result.flag) {
+							style += "red;";
+							console.log("fail message: " + result.message);
+							span.innerHTML = "upload fail";
 						}
+						span.setAttribute("style", style);
+						img.parentNode.appendChild(span);
 					}
 					
 					//execute callBack
