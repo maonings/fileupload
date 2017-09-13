@@ -39,7 +39,7 @@
 	        if (file) {
 	            iu.preview(file, 180, 150);
 	        } else {
-	            iu.upload("/upload.do");
+	            iu.upload("upload.do");
 	        }
 	    }
 	})(window);
