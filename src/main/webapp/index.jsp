@@ -3,9 +3,9 @@
 <html>
 <head>
 	<title>Insert title here</title>
-	<script type="text/javascript" src="/static/js/img.upload.js?v=0.1.87"></script>
-	<link href="/static/css/font-awesome.css" rel="stylesheet" type="text/css">
-	<link href="/static/css/style.css?v=0.1.5" rel="stylesheet" type="text/css">
+	<script type="text/javascript" src="static/js/img.upload.js?v=0.1.87"></script>
+	<link href="static/css/font-awesome.css" rel="stylesheet" type="text/css">
+	<link href="static/css/style.css?v=0.1.5" rel="stylesheet" type="text/css">
 </head>
 <body>
     
